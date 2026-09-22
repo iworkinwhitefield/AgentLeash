@@ -452,7 +452,22 @@ def main() -> None:
     logger.info("Intercepting topic=%s", settings.kafka_topic_agent_actions)
 
     verify_topics_exist(settings.kafka_topic_agent_actions, settings.kafka_topic_dlq)
+
     ensure_index()
+
+    probe = assess_action(
+        state={"action": {"action_type": "SQL_QUERY", "raw_command": "SELECT 1"}},
+        api_key=settings.openrouter_api_key,
+        model=settings.jev_model,
+        approve_at=settings.jev_approve_at,
+        block_at=settings.jev_block_at,
+        timeout=settings.jev_timeout_seconds,
+    )
+    if probe.degraded:
+        logger.warning("Jev preflight degraded (%s) -- starting anyway", probe.reason)
+    else:
+        logger.info("Jev preflight OK: %s in %.0f ms", probe.label, probe.latency_ms)
+
 
     assess = build_assess_udf(
         api_key=settings.openrouter_api_key,

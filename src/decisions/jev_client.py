@@ -21,6 +21,19 @@ logger = logging.getLogger(__name__)
 DECISIONS_ENDPOINT: Final[str] = "https://openrouter.ai/api/alpha/decisions"
 RISK_QUESTION_KEY: Final[str] = "risk_assessment"
 
+class JevConfigurationError(RuntimeError):
+    """The Decisions API rejected our credentials or account.
+
+    Unlike a timeout or a 5xx, this cannot resolve itself: every subsequent
+    call will fail identically. Raising halts the stream without committing
+    offsets -- still fail-closed, since no verdict means no approval -- and
+    the batch replays once the key is fixed.
+    """
+
+
+# 401 invalid key, 402 out of credits, 403 forbidden: configuration, not weather.
+_FATAL_STATUSES: Final[frozenset[int]] = frozenset({401, 402, 403})
+
 
 class RiskLabel(str, Enum):
     SAFE = "safe"
@@ -204,7 +217,8 @@ def assess_action(
 ) -> RiskAssessment:
     """Send one action to Jev and map the answer to a verdict.
 
-    Never raises. Every failure mode returns a REVIEW verdict flagged degraded.
+    Never raises. No error path returns ALLOW : transient failures return a degraded
+    REVIEW, configuration failures raise.
     """
     started = time.perf_counter()
     payload = {"model": model, "state": state, "questions": RISK_QUESTION}
@@ -231,6 +245,10 @@ def assess_action(
         )
     except requests.RequestException as exc:
         return _degraded(f"transport error: {type(exc).__name__}")
+
+    if response.status_code in _FATAL_STATUSES:
+        raise JevConfigurationError(f"HTTP {response.status_code}: {response.text[:200]}")
+
 
     if response.status_code != 200:
         return _degraded(f"HTTP {response.status_code}: {response.text[:200]}")
