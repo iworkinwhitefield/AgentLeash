@@ -239,31 +239,29 @@ def build_assess_udf(
 
 
 def read_telemetry(spark: SparkSession) -> DataFrame:
-    """Kafka -> parsed, validated rows. Invalid rows are KEPT and labelled.
-
-    The old `.filter(e.isNotNull())` was a silent drop. Every record now
-    leaves this function with parse_error NULL (valid) or a reason -- plus
-    its raw bytes and Kafka coordinates, so it can be dead-lettered exactly
-    as it arrived.
-    """
+    """Kafka source -> parse_raw. The only part of the pipeline that needs a broker."""
     settings = get_settings()
-    jaas = (
-        "org.apache.kafka.common.security.plain.PlainLoginModule required "
-        f'username="{settings.kafka_api_key}" password="{settings.kafka_api_secret}";'
-    )
     raw = (
         spark.readStream.format("kafka")
-        .option("kafka.bootstrap.servers", settings.kafka_bootstrap_servers)
+        .options(**settings.spark_kafka_options())
         .option("subscribe", settings.kafka_topic_agent_actions)
-        .option("startingOffsets", "latest")
+        .option("startingOffsets", settings.spark_starting_offsets)
         .option("failOnDataLoss", "false")
         .option("maxOffsetsPerTrigger", str(settings.spark_max_offsets_per_trigger))
-        .option("includeHeaders", "true")       # needed for the attempt counter
-        .option("kafka.security.protocol", "SASL_SSL")
-        .option("kafka.sasl.mechanism", "PLAIN")
-        .option("kafka.sasl.jaas.config", jaas)
+        .option("includeHeaders", "true")
         .load()
     )
+    return parse_raw(raw)
+
+
+def parse_raw(raw: DataFrame) -> DataFrame:
+    """Kafka-shaped rows -> parsed, validated rows. Pure transformation, no I/O.
+
+    Works identically on a streaming or a static DataFrame, which is what lets
+    the tests run the validator on a local SparkSession with no broker.
+    Invalid rows are KEPT and labelled: every record leaves with parse_error
+    NULL (valid) or a reason, plus its raw bytes and Kafka coordinates.
+    """
     parsed = raw.select(
         F.col("key").alias("kafka_key"),
         F.col("value").alias("kafka_value"),
