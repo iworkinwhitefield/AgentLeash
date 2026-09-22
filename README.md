@@ -19,6 +19,8 @@ AI agents are incredibly useful right up until they try to run `DROP DATABASE`. 
 
 You don't need cloud credentials or Docker to test the pipeline logic. The repo includes a lightweight Python mock server to simulate the API and inject faults.
 
+![AgentLeash Architecture](AgentLeash-Architecture.png)
+
 ```bash
 # 1. Install dependencies
 pip install -r requirements-dev.txt
@@ -33,4 +35,4 @@ AGENTLEASH_ENV_FILE=.env.compose python -m src.streaming.jev_interceptor
 AGENTLEASH_ENV_FILE=.env.compose python -m src.producers.safe_agent_simulator
 
 
-![AgentLeash Architecture](AgentLeash-Architecture.png)
+
