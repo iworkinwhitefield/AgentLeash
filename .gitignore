@@ -1,4 +1,26 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+guard/
+venv/
+.venv/
+
+# Spark runtime state
+.checkpoints/
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Local artifacts
+logs/
 eval/*.jsonl
 eval/*.csv
 eval/*.png
-.env
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
