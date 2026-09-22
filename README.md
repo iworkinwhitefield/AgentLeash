@@ -9,6 +9,8 @@ AI agents are incredibly useful right up until they try to run `DROP DATABASE`. 
 3. **Scoring:** Surviving events are batched and sent to the **Jev 1.13 Decisions API** (a fast, System-One model) to get a strict `ALLOW`, `REVIEW`, or `BLOCK` verdict.
 4. **Storage:** The verdicts are sunk into **Elasticsearch** so security teams can actually query what the agents are trying to do.
 
+![AgentLeash Architecture](AgentLeash-Architecture.png)
+
 ## Why it's built this way
 
 * **Batching for speed:** Calling an API row-by-row in Spark is a bottleneck. I used `pandas_udf` to batch rows into Arrow tables and hit the API concurrently using thread pools.
@@ -18,8 +20,6 @@ AI agents are incredibly useful right up until they try to run `DROP DATABASE`. 
 ## Running it locally (No Docker Required)
 
 You don't need cloud credentials or Docker to test the pipeline logic. The repo includes a lightweight Python mock server to simulate the API and inject faults.
-
-![AgentLeash Architecture](AgentLeash-Architecture.png)
 
 ```bash
 # 1. Install dependencies
