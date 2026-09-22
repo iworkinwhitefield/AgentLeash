@@ -11,12 +11,6 @@ AI agents are incredibly useful right up until they try to run `DROP DATABASE`. 
 
 ![AgentLeash Architecture](AgentLeash-Architecture.png)
 
-## Why it's built this way
-
-* **Batching for speed:** Calling an API row-by-row in Spark is a bottleneck. I used `pandas_udf` to batch rows into Arrow tables and hit the API concurrently using thread pools.
-* **Idempotency over exactly-once:** Two-phase commits are fragile. Instead, the pipeline maps the Kafka `event_id` directly to the Elasticsearch `_id`. If Spark crashes and restarts, it just overwrites the same document. No duplicates.
-* **Fail-closed:** If the scoring API times out or throws a 503, the pipeline doesn't crash or let the payload through. It defaults to a `REVIEW` verdict, tags it as degraded, and kicks it to a Dead Letter Queue (DLQ) for replay later.
-
 ## Running it locally (No Docker Required)
 
 You don't need cloud credentials or Docker to test the pipeline logic. The repo includes a lightweight Python mock server to simulate the API and inject faults.
