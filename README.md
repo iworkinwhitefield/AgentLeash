@@ -31,3 +31,6 @@ AGENTLEASH_ENV_FILE=.env.compose python -m src.streaming.jev_interceptor
 
 # 4. Fire simulated agent traffic in Terminal 3
 AGENTLEASH_ENV_FILE=.env.compose python -m src.producers.safe_agent_simulator
+
+
+![AgentLeash Architecture](AgentLeash-Architecture.png)
